@@ -1,4 +1,5 @@
 from os import listdir
+import sys
 import pandas as pd
 import seaborn as sns
 import umap
@@ -18,7 +19,17 @@ def _to_hex(arr):
 
 sns.set(style='white', context='notebook', rc={'figure.figsize': (14, 10)})
 
-data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\'
+data_folder = ""
+
+try:
+    data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\'
+
+except:
+    print("Could not find files directory...")
+
+if (data_folder != ""):
+    data_folder = sys.argv[1]
+
 files = [f for f in listdir(data_folder) if f.endswith('.csv')]
 
 wines = []
@@ -95,9 +106,6 @@ mapper = umap.UMAP().fit(wines[wines.columns[3:].to_list()])
 # this guy automatically makes the legend with labels, interactive plot doesn't and haven't found
 # way to patch it do so, since it would need every data group to be plotted subsequently
 # umap.plot.points(mapper, labels=wines['Variety'])
-import umap.plot
-p = umap.plot.interactive(mapper, labels=wines['Variety'],
-                          hover_data=hover_data, point_size=6.5, interactive_text_search=True)
 
 data = pd.DataFrame(mapper.embedding_, columns=("x", "y"))
 data['label'] = wines['Variety']
@@ -107,7 +115,8 @@ color_key = _to_hex(plt.get_cmap('Spectral')(np.linspace(0, 1, num_labels)))
 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
 data["color"] = pd.Series(wines['Variety']).map(new_color_key)
 data["alpha"] = 1
-datasource = ColumnDataSource(data)
+data["wine_name"] = wines["wine"]
+data_source = ColumnDataSource(data)
 
 tooltip_dict = {}
 for col_name in hover_data:
@@ -115,7 +124,8 @@ for col_name in hover_data:
     tooltip_dict[col_name] = "@{" + col_name + "}"
 tooltips = list(tooltip_dict.items())
 
-output_file('red_wines_struct.html')
+print("Creating struct file...")
+output_file('red_wines_struct_new.html')
 
 plot_figure = figure(
     title='UMAP projection of the Red Wines',
@@ -128,13 +138,64 @@ plot_figure = figure(
 plot_figure.circle(
     'x',
     'y',
-    source=datasource,
+    source=data_source,
     color='color',
     alpha='alpha',
     size=6.5,
 )
 
-print('hi')
+###########
+
+text_input = TextInput(value="", title="Search for wine:")
+callback = CustomJS(
+args=dict(
+    source=data_source,
+    matching_alpha=1,
+    non_matching_alpha=1 - 0.95,
+    search_columns=["wine_name"],
+),
+code="""
+var data = source.data;
+var text_search = cb_obj.value;
+
+var search_columns_dict = {}
+for (var col in search_columns){
+    search_columns_dict[col] = search_columns[col]
+}
+
+// Loop over columns and values
+// If there is no match for any column for a given row, change the alpha value
+var string_match = false;
+for (var i = 0; i < data.x.length; i++) {
+    string_match = false
+    for (var j in search_columns_dict) {
+        if (String(data[search_columns_dict[j]][i]).includes(text_search) ) {
+            string_match = true
+        }
+    }
+    if (string_match){
+        data['alpha'][i] = matching_alpha
+    }else{
+        data['alpha'][i] = non_matching_alpha
+    }
+}
+source.change.emit();
+""",
+)
+
+text_input.js_on_change("value", callback)
+
+plot_figure = column(text_input, plot_figure)
+
+
+
+
+
+
+###########
+
+show(plot_figure)
+
 '''
 show(column(searchbar, plot_figure, slider))
 
@@ -211,7 +272,7 @@ plot_figure.add_tools(HoverTool(tooltips="""
 plot_figure.circle(
     'x',
     'y',
-    source=datasource,
+    source=data_source,
     color=dict(field='digit', transform=color_mapping),
     line_alpha=0.6,
     fill_alpha=0.6,
