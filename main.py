@@ -116,13 +116,14 @@ new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
 data["color"] = pd.Series(wines['Variety']).map(new_color_key)
 data["alpha"] = 1
 data["wine_name"] = wines["wine"]
-data_source = ColumnDataSource(data)
 
 tooltip_dict = {}
 for col_name in hover_data:
     data[col_name] = hover_data[col_name]
     tooltip_dict[col_name] = "@{" + col_name + "}"
 tooltips = list(tooltip_dict.items())
+
+data_source = ColumnDataSource(data)
 
 print("Creating struct file...")
 output_file('red_wines_struct_new.html')
