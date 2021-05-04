@@ -27,7 +27,7 @@ try:
 except:
     print("Could not find files directory...")
 
-if (data_folder != ""):
+if data_folder != "C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\":
     data_folder = sys.argv[1]
 
 files = [f for f in listdir(data_folder) if f.endswith('.csv')]
@@ -39,8 +39,17 @@ for filename in files:
 wines = pd.concat(wines)
 wines.reset_index(inplace=True, drop=True)
 
-# find the rare taste features (in less than 5 percent of the sample), drop them from the df
-rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.95)].index.to_list()
+# sum some redundant features
+wines['Anise'] = (wines['Anise'].fillna(0) + wines['Star anise'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Tropical'] = (wines['Tropical'].fillna(0) + wines['Mango'].fillna(0) + wines['Pineapple'].fillna(0) + wines['Passion fruit'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Lemon'] = (wines['Lemon'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Orange'] = (wines['Orange'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Tangerine'] = (wines['Tangerine'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+
+wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Citrus'], axis=1, inplace=True)
+
+# find the rare taste features (in less than 10 percent of the sample), drop them from the df
+rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.90)].index.to_list()
 
 # remove wrong features
 undesirables = ['region', 'cheese', 'game', 'meat']
@@ -82,8 +91,14 @@ taste_features_columns = wines.columns[res[0] + 1:].to_list()
 normalised_tastes = (wines[taste_features_columns] - wines[taste_features_columns].mean()) / wines[
     taste_features_columns].std()
 wines[taste_features_columns] = normalised_tastes.fillna(0)
-# give avg alcohol content to wines that are missing this data
-wines['Alcohol'].fillna(wines['Alcohol'].mean().round(1), inplace=True)
+
+# let's normalise also the slider data (sweet, dry, etc)
+wines[wines.columns[3:11]] = (wines[wines.columns[3:11]] - wines[wines.columns[3:11]].mean()) / wines[wines.columns[3:11]].std()
+
+# give avg alcohol content to wines that are missing this data, by variety
+for variety in wines['Variety'].unique():
+    wines[wines['Variety'] == variety]['Alcohol'].fillna(wines[wines['Variety'] == variety]['Alcohol'].mean(), inplace=True)
+    wines['Alcohol'].fillna(wines['Alcohol'].mean().round(1), inplace=True)
 
 # remove any rows that still have nas (no slider data for those wines probably)
 wines.dropna(inplace=True)
@@ -129,7 +144,7 @@ print("Creating struct file...")
 output_file('red_wines_struct_new.html')
 
 plot_figure = figure(
-    title='UMAP projection of the Red Wines',
+    title='UMAP projection of the Red Wines alpha',
     plot_width=600,
     plot_height=600,
     tooltips=tooltips,
