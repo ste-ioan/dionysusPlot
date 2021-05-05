@@ -41,12 +41,26 @@ wines.reset_index(inplace=True, drop=True)
 
 # sum some redundant features
 wines['Anise'] = (wines['Anise'].fillna(0) + wines['Star anise'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Tropical'] = (wines['Tropical'].fillna(0) + wines['Mango'].fillna(0) + wines['Pineapple'].fillna(0) + wines['Passion fruit'].fillna(0) + wines['Guava'].fillna(0) + wines['Green mango'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Tropical'] = (wines['Tropical'].fillna(0) + wines['Mango'].fillna(0) + wines['Pineapple'].fillna(0) + wines['Green papaya'].fillna(0) +
+                     wines['Passion fruit'].fillna(0) + wines['Guava'].fillna(0) + wines['Green mango'].fillna(0)).replace({'0':np.nan, 0:np.nan})
 wines['Lemon'] = (wines['Lemon'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Orange'] = (wines['Orange'].fillna(0) + wines['Orange zest'].fillna(0) + wines['Orange peel'].fillna(0)+ wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Orange'] = (wines['Orange'].fillna(0) + wines['Blood orange'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
 wines['Tangerine'] = (wines['Tangerine'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Grapefruit'] = (wines['Grapefruit'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Lime'] = (wines['Lime'].fillna(0) + wines['Citrus'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Smoke'] = (wines['Smoke'].fillna(0) + wines['Campfire'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Orange zest'] = (wines['Orange zest'].fillna(0) + wines['Orange peel'].fillna(0) + wines['Orange rind'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Dark fruit'] = (wines['Dark fruit'].fillna(0) + wines['Black fruit'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Almond'] = (wines['Almond'].fillna(0) + wines['Nutty'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Walnut'] = (wines['Walnut'].fillna(0) + wines['Nutty'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Macadamia nut'] = (wines['Macadamia nut'].fillna(0) + wines['Nutty'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Hazelnut'] = (wines['Hazelnut'].fillna(0) + wines['Nutty'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Potpourri'] =  (wines['Potpourri'].fillna(0) + wines['Dried rose'].fillna(0) + wines['Dried flowers'].fillna(0)).replace({'0':np.nan, 0:np.nan})
 
-wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Citrus', 'Orange zest', 'Orange peel', 'Guava'], axis=1, inplace=True)
+
+
+wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Citrus', 'Orange peel', 'Guava', 'Green mango',
+            'Green papaya', 'Orange rind', 'Blood orange', 'Campfire', 'Black fruit', 'Nutty', 'Dried rose', 'Dried flowers'], axis=1, inplace=True)
 
 # find the rare taste features (in less than 10 percent of the sample), drop them from the df
 rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.90)].index.to_list()
@@ -130,7 +144,7 @@ color_key = _to_hex(plt.get_cmap('Spectral')(np.linspace(0, 1, num_labels)))
 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
 data["color"] = pd.Series(wines['Variety']).map(new_color_key)
 data["alpha"] = 1
-data["wine_name"] = wines["wine"]
+data["wine_name"] = wines["wine"].str.lower()
 
 tooltip_dict = {}
 for col_name in hover_data:
