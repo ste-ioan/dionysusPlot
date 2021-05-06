@@ -165,6 +165,9 @@ plot_figure.circle(
     size=6.5,
 )
 
+plot_figure.grid.visible = False
+plot_figure.axis.visible = False
+
 ###########
 
 text_input = TextInput(value="", title="Search for wine:")
@@ -236,69 +239,4 @@ p.title.text_font_size = "25px"
 p.legend.location = "top_left"
 # p.toolbar_location = "above"
 # p.title.background_fill_color = "#aaaaee"
-
-text_input = TextInput(value="", title="Search wine:")
-callback = CustomJS(
-    args=dict(
-        source=hover_data.to_json(),
-        matching_alpha=0.95,
-        non_matching_alpha=1 - 0.95,
-        search_columns='name',
-    ),
-    code="")
-
-
-text_input.js_on_change("value", callback)
-'''
-
-'''
-# take only flavors, without sliders changes the clusters by a lot
-mapper = umap.UMAP().fit(wines[wines.columns[11:].to_list()])
-
-import umap.plot
-# umap.plot.points(mapper, labels=wines['Variety'])
-
-umap.plot.output_file('red_wines_not_struct.html.html')
-
-p = umap.plot.interactive(mapper, labels=wines['Variety'],
-                          hover_data=hover_data, point_size=5)
-umap.plot.show(p)
-
-
-digits_df = pd.DataFrame(embedding, columns=('x', 'y'))
-digits_df['digit'] = [str(x) for x in digits.target]
-digits_df['image'] = list(map(embeddable_image, digits.images))
-
-
-
-plot_figure = figure(
-    title='UMAP projection of the Digits dataset',
-    plot_width=600,
-    plot_height=600,
-    tools=('pan, wheel_zoom, reset')
-)
-
-plot_figure.add_tools(HoverTool(tooltips="""
-<div>
-    <div>
-        <img src='@image' style='float: left; margin: 5px 5px 5px 5px'/>
-    </div>
-    <div>
-        <span style='font-size: 16px; color: #224499'>Digit:</span>
-        <span style='font-size: 18px'>@digit</span>
-    </div>
-</div>
-"""))
-
-plot_figure.circle(
-    'x',
-    'y',
-    source=data_source,
-    color=dict(field='digit', transform=color_mapping),
-    line_alpha=0.6,
-    fill_alpha=0.6,
-    size=4
-)
-show(plot_figure)
-
 '''
