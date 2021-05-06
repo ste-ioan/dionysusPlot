@@ -136,6 +136,7 @@ new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
 data["color"] = pd.Series(wines['Variety']).map(new_color_key)
 data["alpha"] = 1
 data["wine_name"] = wines["wine"].str.lower()
+data["price"] = hover_data["price"]
 
 tooltip_dict = {}
 for col_name in hover_data:
@@ -165,16 +166,47 @@ plot_figure.circle(
     size=6.5,
 )
 
-###########
-
 # Search bar text input
 text_input = TextInput(value="", title="Search for wine:")
 
 # Price Slider
 price_slider = RangeSlider(start=hover_data['price'].min(), end=hover_data['price'].max(), value=(7,20), step=.1, title="Price")
-price_slider.js_on_change("value", CustomJS(code="""
-    console.log('slider: value=' + this.value, this.toString())
-"""))
+
+price_slider_callback = CustomJS(
+    args=dict(
+    source=data_source,
+    matching_alpha=1,
+    non_matching_alpha=1 - 0.95,
+    search_columns=["price"],
+    ),code="""
+    console.log('type of value=' + this)
+    var price_data = source.data;
+    var price_range = this.value;
+    
+    var search_columns_dict = {}
+    for (var col in search_columns){
+        search_columns_dict[col] = search_columns[col]
+    }
+
+    var price_range_match = false;
+    for (var i = 0; i < price_data.x.length; i++) {
+        price_range_match = false
+        for (var j in search_columns_dict) {
+            if (price_data[search_columns_dict[j]][i] > price_range[0]
+            && price_data[search_columns_dict[j]][i] < price_range[1]) {
+                price_range_match = true
+            }
+        }
+        if (price_range_match){
+            price_data['alpha'][i] = matching_alpha
+        }else{
+            price_data['alpha'][i] = non_matching_alpha
+        }
+    }
+    source.change.emit();
+""")
+
+price_slider.js_on_change("value", price_slider_callback)
 
 # This is executed once a given event is triggered. This event is declared using model.js_on_event('<event_type>', callback) <-- even type can be tap, click etc
 callback = CustomJS(
