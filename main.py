@@ -27,7 +27,7 @@ try:
 except:
     print("Could not find files directory...")
 
-if data_folder != "C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\":
+if data_folder != "":
     data_folder = sys.argv[1]
 
 files = [f for f in listdir(data_folder) if f.endswith('.csv')]
@@ -130,7 +130,7 @@ color_key = _to_hex(plt.get_cmap('Spectral')(np.linspace(0, 1, num_labels)))
 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
 data["color"] = pd.Series(wines['Variety']).map(new_color_key)
 data["alpha"] = 1
-data["wine_name"] = wines["wine"]
+data["wine_name"] = wines["wine"].str.lower()
 
 tooltip_dict = {}
 for col_name in hover_data:
@@ -162,7 +162,16 @@ plot_figure.circle(
 
 ###########
 
+# Search bar text input
 text_input = TextInput(value="", title="Search for wine:")
+
+# Price Slider
+price_slider = RangeSlider(start=hover_data['price'].min(), end=hover_data['price'].max(), value=(7,20), step=.1, title="Price")
+price_slider.js_on_change("value", CustomJS(code="""
+    console.log('slider: value=' + this.value, this.toString())
+"""))
+
+# This is executed once a given event is triggered. This event is declared using model.js_on_event('<event_type>', callback) <-- even type can be tap, click etc
 callback = CustomJS(
 args=dict(
     source=data_source,
@@ -201,7 +210,7 @@ source.change.emit();
 
 text_input.js_on_change("value", callback)
 
-plot_figure = column(text_input, plot_figure)
+plot_figure = column(text_input, plot_figure, price_slider)
 
 
 
