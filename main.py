@@ -19,15 +19,11 @@ def _to_hex(arr):
 
 sns.set(style='white', context='notebook', rc={'figure.figsize': (14, 10)})
 
-data_folder = ""
-
 try:
     data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\'
 
 except:
     print("Could not find files directory...")
-
-if data_folder != "":
     data_folder = sys.argv[1]
 
 files = [f for f in listdir(data_folder) if f.endswith('.csv')]
@@ -40,14 +36,14 @@ wines = pd.concat(wines)
 wines.reset_index(inplace=True, drop=True)
 
 # sum some redundant features
-wines['Anise'] = (wines['Anise'].fillna(0) + wines['Star anise'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Tropical'] = (wines['Tropical'].fillna(0) + wines['Mango'].fillna(0) + wines['Pineapple'].fillna(0) + wines['Green papaya'].fillna(0) +
-                     wines['Passion fruit'].fillna(0) + wines['Guava'].fillna(0) + wines['Green mango'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Orange'] = (wines['Orange'].fillna(0) + wines['Blood orange'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Smoke'] = (wines['Smoke'].fillna(0) + wines['Campfire'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Orange zest'] = (wines['Orange zest'].fillna(0) + wines['Orange peel'].fillna(0) + wines['Orange rind'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Dark fruit'] = (wines['Dark fruit'].fillna(0) + wines['Black fruit'].fillna(0)).replace({'0':np.nan, 0:np.nan})
-wines['Dried flowers'] =  (wines['Dried flowers'].fillna(0) + wines['Dried rose'].fillna(0) + wines['Potpourri'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Anise'] = (wines.loc[:,'Anise'].fillna(0) + wines.loc[:,'Star anise'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Tropical'] = (wines.loc[:,'Tropical'].fillna(0) + wines.loc[:,'Mango'].fillna(0) + wines.loc[:,'Pineapple'].fillna(0) + wines.loc[:,'Green papaya'].fillna(0) +
+                     wines.loc[:,'Passion fruit'].fillna(0) + wines.loc[:,'Guava'].fillna(0) + wines.loc[:,'Green mango'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Orange'] = (wines.loc[:,'Orange'].fillna(0) + wines.loc[:,'Blood orange'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Smoke'] = (wines.loc[:,'Smoke'].fillna(0) + wines.loc[:,'Campfire'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Orange zest'] = (wines.loc[:,'Orange zest'].fillna(0) + wines.loc[:,'Orange peel'].fillna(0) + wines.loc[:,'Orange rind'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Dark fruit'] = (wines.loc[:,'Dark fruit'].fillna(0) + wines.loc[:,'Black fruit'].fillna(0)).replace({'0':np.nan, 0:np.nan})
+wines['Dried flowers'] =  (wines.loc[:,'Dried flowers'].fillna(0) + wines.loc[:,'Dried rose'].fillna(0) + wines.loc[:,'Potpourri'].fillna(0)).replace({'0':np.nan, 0:np.nan})
 
 
 wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Orange peel', 'Guava', 'Green mango',
@@ -114,7 +110,6 @@ hover_data = pd.DataFrame({'name': wines['wine'].str.lower(),
                            'grapes': wines['Grapes'].str.lower()})
 
 
-
 wines.drop(['Price', 'Rating'], axis=1, inplace=True)
 
 # print out some info
@@ -150,7 +145,7 @@ print("Creating struct file...")
 output_file('red_wines_struct_new.html')
 
 plot_figure = figure(
-    title='UMAP projection of the Red Wines alpha',
+    title='Tastespace of {} red wines - alpha'.format(wines.shape[0]),
     plot_width=600,
     plot_height=600,
     tooltips=tooltips,
@@ -202,6 +197,7 @@ price_slider_callback = CustomJS(
                 price_range_match = true
             }
         }
+        // QUA VA MESSA UNA CONDIZIONE SULL'ALPHA (SE E' GIA' DIVERSA DA 1)
         if (price_range_match){
             price_data['alpha'][i] = matching_alpha
         }else{
@@ -240,6 +236,7 @@ for (var i = 0; i < data.x.length; i++) {
             string_match = true
         }
     }
+    // QUA VA MESSA UNA CONDIZIONE SULL'ALPHA (SE E' GIA' DIVERSA DA 1)
     if (string_match){
         data['alpha'][i] = matching_alpha
     }else{
