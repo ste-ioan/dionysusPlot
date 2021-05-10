@@ -18,9 +18,10 @@ def _to_hex(arr):
 
 
 sns.set(style='white', context='notebook', rc={'figure.figsize': (14, 10)})
+data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\'
 
 try:
-    data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\'
+    listdir(data_folder)
 
 except:
     print("Could not find files directory...")
@@ -167,7 +168,7 @@ plot_figure.axis.visible = False
 ###########
 
 # Search bar text input
-text_input = TextInput(value="", title="Search for wine:")
+text_input = TextInput(name="wine_text_input", value="", title="Search for wine:")
 
 # Price Slider
 price_slider = RangeSlider(start=hover_data['price'].min(), end=hover_data['price'].max(), value=(7,20), step=.1, title="Price")
@@ -179,7 +180,6 @@ price_slider_callback = CustomJS(
     non_matching_alpha=1 - 0.95,
     search_columns=["price"],
     ),code="""
-    console.log('type of value=' + this)
     var price_data = source.data;
     var price_range = this.value;
     
@@ -187,17 +187,18 @@ price_slider_callback = CustomJS(
     for (var col in search_columns){
         search_columns_dict[col] = search_columns[col]
     }
-
+    var text_search = document.getElementsByName("wine_text_input")[0].value;
     var price_range_match = false;
     for (var i = 0; i < price_data.x.length; i++) {
         price_range_match = false
         for (var j in search_columns_dict) {
             if (price_data[search_columns_dict[j]][i] > price_range[0]
             && price_data[search_columns_dict[j]][i] < price_range[1]) {
-                price_range_match = true
+                if (source.data["name"][i].includes(text_search)) {
+                    price_range_match = true;
+                }
             }
         }
-        // QUA VA MESSA UNA CONDIZIONE SULL'ALPHA (SE E' GIA' DIVERSA DA 1)
         if (price_range_match){
             price_data['alpha'][i] = matching_alpha
         }else{
@@ -216,11 +217,13 @@ args=dict(
     matching_alpha=1,
     non_matching_alpha=1 - 0.95,
     search_columns=["wine_name"],
+    price_slider_value=price_slider,
 ),
 code="""
 var data = source.data;
+var price_data = data["price"]
 var text_search = cb_obj.value;
-
+var price_range = price_slider_value["value"];
 var search_columns_dict = {}
 for (var col in search_columns){
     search_columns_dict[col] = search_columns[col]
@@ -233,10 +236,13 @@ for (var i = 0; i < data.x.length; i++) {
     string_match = false
     for (var j in search_columns_dict) {
         if (String(data[search_columns_dict[j]][i]).includes(text_search) ) {
-            string_match = true
-        }
+            if (price_data[i] > price_range[0]
+            && price_data[i] < price_range[1]) {
+                string_match = true
+
+            }
+        } 
     }
-    // QUA VA MESSA UNA CONDIZIONE SULL'ALPHA (SE E' GIA' DIVERSA DA 1)
     if (string_match){
         data['alpha'][i] = matching_alpha
     }else{
