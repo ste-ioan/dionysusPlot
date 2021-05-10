@@ -45,7 +45,6 @@ wines['Orange zest'] = (wines.loc[:,'Orange zest'].fillna(0) + wines.loc[:,'Oran
 wines['Dark fruit'] = (wines.loc[:,'Dark fruit'].fillna(0) + wines.loc[:,'Black fruit'].fillna(0)).replace({'0':np.nan, 0:np.nan})
 wines['Dried flowers'] =  (wines.loc[:,'Dried flowers'].fillna(0) + wines.loc[:,'Dried rose'].fillna(0) + wines.loc[:,'Potpourri'].fillna(0)).replace({'0':np.nan, 0:np.nan})
 
-
 wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Orange peel', 'Guava', 'Green mango',
             'Green papaya', 'Orange rind', 'Blood orange', 'Campfire', 'Black fruit', 'Dried rose', 'Potpourri'], axis=1, inplace=True)
 
@@ -85,7 +84,7 @@ wines[wines.columns[res[0] + 1:].to_list()].max(axis=1)
 
 # no e' meglio per ora un filtro arbitrario (la feature piu' votata deve avere almeno x voti)
 filtro = 30
-wines.drop(wines[wines[wines.columns[res[0] + 1:].to_list()].max(axis=1) < filtro].index, inplace=True)
+wines.drop(wines[wines[wines.columns[res[0] + 1:].to_list()].fillna(0).max(axis=1) < filtro].index, inplace=True)
 
 # stash the taste features, normalise and reinput them into the matrix, fill na's with 0s
 taste_features_columns = wines.columns[res[0] + 1:].to_list()
@@ -108,7 +107,6 @@ wines.reset_index(inplace=True, drop=True)
 hover_data = pd.DataFrame({'name': wines['wine'].str.lower(),
                            'price': wines['Price'],
                            'grapes': wines['Grapes'].str.lower()})
-
 
 wines.drop(['Price', 'Rating'], axis=1, inplace=True)
 
@@ -141,11 +139,13 @@ tooltips = list(tooltip_dict.items())
 
 data_source = ColumnDataSource(data)
 
+wines.to_csv('normalised_wines')
+
 print("Creating struct file...")
 output_file('red_wines_struct_new.html')
 
 plot_figure = figure(
-    title='Tastespace of {} red wines - alpha'.format(wines.shape[0]),
+    title='tastespace of {} red wines - alpha'.format(wines.shape[0]),
     plot_width=600,
     plot_height=600,
     tooltips=tooltips,
