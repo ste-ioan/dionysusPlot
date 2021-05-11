@@ -4,8 +4,8 @@ import pandas as pd
 import seaborn as sns
 import umap
 from bokeh.models import CustomJS, TextInput, RangeSlider, HoverTool
-from bokeh.models import Legend, LegendItem, LinearAxis, CategoricalColorMapper, ColumnDataSource
-from bokeh.layouts import column
+from bokeh.models import Legend, LegendItem, LinearAxis, CategoricalColorMapper, ColumnDataSource, CheckboxButtonGroup
+from bokeh.layouts import column, row
 from bokeh.plotting import figure, show, output_file
 from bokeh.palettes import Spectral10
 import numpy as np
@@ -49,7 +49,7 @@ wines['Dried flowers'] =  (wines.loc[:,'Dried flowers'].fillna(0) + wines.loc[:,
 wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Orange peel', 'Guava', 'Green mango',
             'Green papaya', 'Orange rind', 'Blood orange', 'Campfire', 'Black fruit', 'Dried rose', 'Potpourri'], axis=1, inplace=True)
 
-# find the rare taste features (in less than 10 percent of the sample), drop them from the df
+# find the rare taste features (in less than 5 percent of the sample), drop them from the df
 rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.90)].index.to_list()
 
 # remove wrong features
@@ -94,6 +94,7 @@ normalised_tastes = (wines[taste_features_columns] - wines[taste_features_column
 wines[taste_features_columns] = normalised_tastes.fillna(0)
 
 # let's normalise also the slider data (sweet, dry, etc)
+# warning: do this by index, not manually input like here!!
 wines[wines.columns[3:11]] = (wines[wines.columns[3:11]] - wines[wines.columns[3:11]].mean()) / wines[wines.columns[3:11]].std()
 
 # give avg alcohol content to wines that are missing this data, by variety
@@ -116,10 +117,6 @@ print("There are {} wines and {} taste features in the dataset".format(wines.sha
 
 # another (faster) way of doing things
 mapper = umap.UMAP().fit(wines[wines.columns[3:].to_list()])
-
-# this guy automatically makes the legend with labels, interactive plot doesn't and haven't found
-# way to patch it do so, since it would need every data group to be plotted subsequently
-# umap.plot.points(mapper, labels=wines['Variety'])
 
 data = pd.DataFrame(mapper.embedding_, columns=("x", "y"))
 data['label'] = wines['Variety']
@@ -146,7 +143,7 @@ print("Creating struct file...")
 output_file('red_wines_struct_new.html')
 
 plot_figure = figure(
-    title='tastespace of {} red wines - alpha'.format(wines.shape[0]),
+    title='Dyonisus tastespace of {} red wines - alpha'.format(wines.shape[0]),
     plot_width=600,
     plot_height=600,
     tooltips=tooltips,
@@ -164,13 +161,10 @@ plot_figure.circle(
 
 plot_figure.grid.visible = False
 plot_figure.axis.visible = False
+plot_figure.toolbar_location = 'above'
 
-###########
+########### PRICER SLIDER
 
-# Search bar text input
-text_input = TextInput(name="wine_text_input", value="", title="Search for wine:")
-
-# Price Slider
 price_slider = RangeSlider(start=hover_data['price'].min(), end=hover_data['price'].max(), value=(7,20), step=.1, title="Price")
 
 price_slider_callback = CustomJS(
@@ -209,6 +203,10 @@ price_slider_callback = CustomJS(
 """)
 
 price_slider.js_on_change("value", price_slider_callback)
+
+################ TEXT INPUT
+# Search bar text input
+text_input = TextInput(name="wine_text_input", value="", title="Search for wine:")
 
 # This is executed once a given event is triggered. This event is declared using model.js_on_event('<event_type>', callback) <-- even type can be tap, click etc
 callback = CustomJS(
@@ -255,34 +253,18 @@ source.change.emit();
 
 text_input.js_on_change("value", callback)
 
-plot_figure = column(text_input, plot_figure, price_slider)
+################ TASTE BUTTONS
+LABELS = normalised_tastes.columns[(normalised_tastes > 10).apply(any,0)].to_list()
+
+taste_buttons = CheckboxButtonGroup(labels=LABELS, active=[0, 1])
+taste_buttons.js_on_click(CustomJS(code="""
+    console.log('checkbox_button_group: active=' + this.active, this.toString())
+"""))
 
 
+########### WRAP IT UP n PLOT
+# have to put a row(plot_figure,buttons) inside this column call
+plot_figure = column(text_input, row(plot_figure, taste_buttons), price_slider)
 
-
-
-
-###########
 
 show(plot_figure)
-
-'''
-show(column(searchbar, plot_figure, slider))
-
-
-these inputs won't work he doesnt recognize the plot to show..
-interactive_text_search=True,
-                          interactive_text_search_columns=wines['wine']
-
-
-umap.
-
-# configure visual properties on a plot's title attribute
-p.title.text = "Red wines space"
-p.title.align = "left"
-p.title.text_color = "red"
-p.title.text_font_size = "25px"
-p.legend.location = "top_left"
-# p.toolbar_location = "above"
-# p.title.background_fill_color = "#aaaaee"
-'''
