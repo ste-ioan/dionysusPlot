@@ -49,7 +49,7 @@ wines['Dried flowers'] =  (wines.loc[:,'Dried flowers'].fillna(0) + wines.loc[:,
 wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Orange peel', 'Guava', 'Green mango',
             'Green papaya', 'Orange rind', 'Blood orange', 'Campfire', 'Black fruit', 'Dried rose', 'Potpourri'], axis=1, inplace=True)
 
-# find the rare taste features (in less than 5 percent of the sample), drop them from the df
+# find the rare taste features (in less than 10 percent of the sample), drop them from the df
 rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.90)].index.to_list()
 
 # remove wrong features
@@ -76,25 +76,17 @@ wines.drop(rare_features, axis=1, inplace=True)
 # find index for taste features
 res = [i for i, val in enumerate(wines.columns == 'Rating') if val]
 
-# establish a cutoff to exclude wines with too few..
-# highest number of comments across taste feature in each bottle?
-wines[wines.columns[res[0] + 1:].to_list()].max(axis=1)
-# the mean is skewed but the median might be an acceptable cutoff, if a wine has less than
-# that number of comments in its highest scoring feature, then we'll filter it out
-# filtro = wines[wines.columns[res[0]+1:].to_list()].max(axis=1).median()
-
-# no e' meglio per ora un filtro arbitrario (la feature piu' votata deve avere almeno x voti)
+# establish a cutoff to exclude wines with too few votes on the tastes
 filtro = 30
 wines.drop(wines[wines[wines.columns[res[0] + 1:].to_list()].fillna(0).max(axis=1) < filtro].index, inplace=True)
 
 # stash the taste features, normalise and reinput them into the matrix, fill na's with 0s
 taste_features_columns = wines.columns[res[0] + 1:].to_list()
-normalised_tastes = (wines[taste_features_columns] - wines[taste_features_columns].mean()) / wines[
-    taste_features_columns].std()
+normalised_tastes = wines[taste_features_columns].subtract(wines[taste_features_columns].mean(axis=1), axis=0).divide(
+    wines[taste_features_columns].std(axis=1), axis=0)
 wines[taste_features_columns] = normalised_tastes.fillna(0)
 
 # let's normalise also the slider data (sweet, dry, etc)
-# warning: do this by index, not manually input like here!!
 wines[wines.columns[3:11]] = (wines[wines.columns[3:11]] - wines[wines.columns[3:11]].mean()) / wines[wines.columns[3:11]].std()
 
 # give avg alcohol content to wines that are missing this data, by variety
@@ -142,8 +134,9 @@ wines.to_csv('normalised_wines')
 print("Creating struct file...")
 output_file('red_wines_struct_new.html')
 
+##### CREATE PLOT
 plot_figure = figure(
-    title='Dyonisus tastespace of {} red wines - alpha'.format(wines.shape[0]),
+    title='Dionysus tastespace of {} red wines - alpha'.format(wines.shape[0]),
     plot_width=600,
     plot_height=600,
     tooltips=tooltips,
@@ -254,7 +247,10 @@ source.change.emit();
 text_input.js_on_change("value", callback)
 
 ################ TASTE BUTTONS
-LABELS = normalised_tastes.columns[(normalised_tastes > 10).apply(any,0)].to_list()
+wines.to_csv('normalised_wines')
+wines.drop('Alcohol', 'wine', 'Variety', 'Grapes',  axis=1, inplace=True)
+
+LABELS = wines.columns[(wines > 2).apply(any, 0)].to_list()
 
 taste_buttons = CheckboxButtonGroup(labels=LABELS, active=[0, 1])
 taste_buttons.js_on_click(CustomJS(code="""
@@ -265,6 +261,5 @@ taste_buttons.js_on_click(CustomJS(code="""
 ########### WRAP IT UP n PLOT
 # have to put a row(plot_figure,buttons) inside this column call
 plot_figure = column(text_input, row(plot_figure, taste_buttons), price_slider)
-
 
 show(plot_figure)
