@@ -253,9 +253,50 @@ wines.drop('Alcohol', 'wine', 'Variety', 'Grapes',  axis=1, inplace=True)
 LABELS = wines.columns[(wines > 2).apply(any, 0)].to_list()
 
 taste_buttons = CheckboxButtonGroup(labels=LABELS, active=[0, 1])
-taste_buttons.js_on_click(CustomJS(code="""
-    console.log('checkbox_button_group: active=' + this.active, this.toString())
-"""))
+
+callback = CustomJS(
+args=dict(
+    source=data_source, #this does not have info needed for buttons to work atm
+    matching_alpha=1,
+    non_matching_alpha=1 - 0.95,
+    search_columns=["wine_name"], #this does not have info needed for buttons to work atm
+    price_slider_value=taste_buttons,# probably needs active here instead of value?
+),
+code="""
+var data = source.data;
+var price_data = data["price"]
+var text_search = cb_obj.value;
+var price_range = price_slider_value["value"];
+var search_columns_dict = {}
+for (var col in search_columns){
+    search_columns_dict[col] = search_columns[col]
+}
+
+// Loop over columns and values
+// If there is no match for any column for a given row, change the alpha value
+var string_match = false;
+for (var i = 0; i < data.x.length; i++) {
+    string_match = false
+    for (var j in search_columns_dict) {
+        if (String(data[search_columns_dict[j]][i]).includes(text_search) ) {
+            if (price_data[i] > price_range[0]
+            && price_data[i] < price_range[1]) {
+                string_match = true
+
+            }
+        } 
+    }
+    if (string_match){
+        data['alpha'][i] = matching_alpha
+    }else{
+        data['alpha'][i] = non_matching_alpha
+    }
+}
+source.change.emit();
+""",
+)
+
+taste_buttons.js_on_click("value", callback)
 
 
 ########### WRAP IT UP n PLOT
