@@ -128,6 +128,7 @@ for col_name in hover_data:
 tooltips = list(tooltip_dict.items())
 
 data_source = ColumnDataSource(data)
+buttons_data_source = ColumnDataSource(wines[wines.columns[3:]])
 
 wines.to_csv('normalised_wines')
 
@@ -202,7 +203,7 @@ price_slider.js_on_change("value", price_slider_callback)
 text_input = TextInput(name="wine_text_input", value="", title="Search for wine:")
 
 # This is executed once a given event is triggered. This event is declared using model.js_on_event('<event_type>', callback) <-- even type can be tap, click etc
-callback = CustomJS(
+textCallback = CustomJS(
 args=dict(
     source=data_source,
     matching_alpha=1,
@@ -244,63 +245,34 @@ source.change.emit();
 """,
 )
 
-text_input.js_on_change("value", callback)
+text_input.js_on_change("value", textCallback)
 
 ################ TASTE BUTTONS
 wines.to_csv('normalised_wines')
-wines.drop('Alcohol', 'wine', 'Variety', 'Grapes',  axis=1, inplace=True)
+wines.drop(['Alcohol', 'wine', 'Variety', 'Grapes'],  axis=1, inplace=True)
 
 LABELS = wines.columns[(wines > 2).apply(any, 0)].to_list()
 
 taste_buttons = CheckboxButtonGroup(labels=LABELS, active=[0, 1])
 
-callback = CustomJS(
+taste_buttons.js_on_click(CustomJS(
 args=dict(
-    source=data_source, #this does not have info needed for buttons to work atm
+    source=buttons_data_source,
     matching_alpha=1,
     non_matching_alpha=1 - 0.95,
-    search_columns=["wine_name"], #this does not have info needed for buttons to work atm
-    price_slider_value=taste_buttons,# probably needs active here instead of value?
+    search_columns=buttons_data_source.column_names,
 ),
 code="""
-var data = source.data;
-var price_data = data["price"]
-var text_search = cb_obj.value;
-var price_range = price_slider_value["value"];
-var search_columns_dict = {}
-for (var col in search_columns){
-    search_columns_dict[col] = search_columns[col]
-}
-
-// Loop over columns and values
-// If there is no match for any column for a given row, change the alpha value
-var string_match = false;
-for (var i = 0; i < data.x.length; i++) {
-    string_match = false
-    for (var j in search_columns_dict) {
-        if (String(data[search_columns_dict[j]][i]).includes(text_search) ) {
-            if (price_data[i] > price_range[0]
-            && price_data[i] < price_range[1]) {
-                string_match = true
-
-            }
-        } 
-    }
-    if (string_match){
-        data['alpha'][i] = matching_alpha
-    }else{
-        data['alpha'][i] = non_matching_alpha
-    }
-}
-source.change.emit();
+ console.log('checkbox_button_group: active=' + this.active, this.toString())
+ # This is an array of the clicked buttons
+ var activeButtons = this.active;
+ console.log()
 """,
-)
+))
 
-taste_buttons.js_on_click("value", callback)
-
-
-########### WRAP IT UP n PLOT
 # have to put a row(plot_figure,buttons) inside this column call
-plot_figure = column(text_input, row(plot_figure, taste_buttons), price_slider)
+buttons_plot_figure = column(text_input, row(plot_figure, taste_buttons), price_slider)
 
-show(plot_figure)
+
+
+show(buttons_plot_figure)
