@@ -18,7 +18,7 @@ def _to_hex(arr):
 
 
 sns.set(style='white', context='notebook', rc={'figure.figsize': (14, 10)})
-data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\'
+data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\merged\\'
 
 try:
     listdir(data_folder)
@@ -86,30 +86,34 @@ normalised_tastes = wines[taste_features_columns].subtract(wines[taste_features_
     wines[taste_features_columns].std(axis=1), axis=0)
 wines[taste_features_columns] = normalised_tastes.fillna(0)
 
+# find indices for slider taste features
+first = [i for i, val in enumerate(wines.columns == 'Bold') if val]
+last = [i for i, val in enumerate(wines.columns == 'Soft') if val]
+
 # let's normalise also the slider data (sweet, dry, etc)
-wines[wines.columns[3:11]] = (wines[wines.columns[3:11]] - wines[wines.columns[3:11]].mean()) / wines[wines.columns[3:11]].std()
+wines[wines.columns[first[0]:last[0]]] = (wines[wines.columns[first[0]:last[0]]] - wines[wines.columns[first[0]:last[0]]].mean()) / wines[wines.columns[first[0]:last[0]]].std()
 
-# give avg alcohol content to wines that are missing this data, by variety
-for variety in wines['Variety'].unique():
-    wines[wines['Variety'] == variety]['Alcohol'].fillna(wines[wines['Variety'] == variety]['Alcohol'].mean(), inplace=True)
-    wines['Alcohol'].fillna(wines['Alcohol'].mean().round(1), inplace=True)
-
-# remove any rows that still have nas (no slider data for those wines probably)
-wines.dropna(inplace=True)
-wines.reset_index(inplace=True, drop=True)
+# give avg alcohol content to wines that are missing this data, by specialty
+for specialty in wines['Specialty'].unique():
+    copy = wines.loc[wines.loc[:, 'Specialty'] == specialty, 'Alcohol']
+    media = wines[wines['Specialty'] == specialty]['Alcohol'].mean()
+    wines.loc[wines.loc[:, 'Specialty'] == specialty, 'Alcohol'] = copy.fillna(media)
 
 hover_data = pd.DataFrame({'name': wines['wine'].str.lower(),
                            'price': wines['Price'],
                            'grapes': wines['Grapes'].str.lower()})
 
 wines.drop(['Price', 'Rating'], axis=1, inplace=True)
+# remove any rows that still have nas (no slider data for those wines probably), after fixing price
+wines.dropna(inplace=True)
+wines.reset_index(inplace=True, drop=True)
 
 # print out some info
 print("There are {} wines and {} taste features in the dataset".format(wines.shape[0], wines.shape[1]))
 
-# another (faster) way of doing things
+# fit the mapper
 mapper = umap.UMAP().fit(wines[wines.columns[3:].to_list()])
-
+# manipulate data for the plots, will probably have to do this for both Specialty and Variety
 data = pd.DataFrame(mapper.embedding_, columns=("x", "y"))
 data['label'] = wines['Variety']
 unique_labels = np.unique(data['label'])
@@ -129,10 +133,8 @@ tooltips = list(tooltip_dict.items())
 
 data_source = ColumnDataSource(data)
 
-wines.to_csv('normalised_wines')
-
 print("Creating struct file...")
-output_file('red_wines_struct_new.html')
+output_file('red_wines_struct_new2.html')
 
 ##### CREATE PLOT
 plot_figure = figure(
@@ -157,7 +159,6 @@ plot_figure.axis.visible = False
 plot_figure.toolbar_location = 'above'
 
 ########### PRICER SLIDER
-
 price_slider = RangeSlider(start=hover_data['price'].min(), end=hover_data['price'].max(), value=(7,20), step=.1, title="Price")
 
 price_slider_callback = CustomJS(
@@ -250,7 +251,9 @@ text_input.js_on_change("value", callback)
 wines.to_csv('normalised_wines')
 wines.drop('Alcohol', 'wine', 'Variety', 'Grapes',  axis=1, inplace=True)
 
-LABELS = wines.columns[(wines > 2).apply(any, 0)].to_list()
+taste_threshold = 1.5
+
+LABELS = wines.columns[(wines > taste_threshold).apply(any, 0)].to_list()
 
 taste_buttons = CheckboxButtonGroup(labels=LABELS, active=[0, 1])
 
