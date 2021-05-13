@@ -93,26 +93,35 @@ last = [i for i, val in enumerate(wines.columns == 'Soft') if val]
 # let's normalise also the slider data (sweet, dry, etc)
 wines[wines.columns[first[0]:last[0]]] = (wines[wines.columns[first[0]:last[0]]] - wines[wines.columns[first[0]:last[0]]].mean()) / wines[wines.columns[first[0]:last[0]]].std()
 
-# give avg alcohol content to wines that are missing this data, by specialty
+# give avg alcohol content to wines that are missing this data, by specialty (this breaks down very separate clusters!)
+# alternative is to give avg alcohol content, that brings it more together
 for specialty in wines['Specialty'].unique():
     copy = wines.loc[wines.loc[:, 'Specialty'] == specialty, 'Alcohol']
     media = wines[wines['Specialty'] == specialty]['Alcohol'].mean()
     wines.loc[wines.loc[:, 'Specialty'] == specialty, 'Alcohol'] = copy.fillna(media)
 
-hover_data = pd.DataFrame({'name': wines['wine'].str.lower(),
-                           'price': wines['Price'],
-                           'grapes': wines['Grapes'].str.lower()})
+# here normalise alcohol content
+wines.loc[:,'Alcohol'] = wines.loc[:,'Alcohol'].subtract(wines.loc[:,'Alcohol'].mean()).divide(wines.loc[:,'Alcohol'].std())
 
-wines.drop(['Price', 'Rating'], axis=1, inplace=True)
+wines['Price'].fillna(0, inplace=True)
+
+wines.drop('Rating', axis=1, inplace=True)
 # remove any rows that still have nas (no slider data for those wines probably), after fixing price
 wines.dropna(inplace=True)
 wines.reset_index(inplace=True, drop=True)
+
+hover_data = pd.DataFrame({'name': wines['wine'].str.lower(),
+                           'price': wines['Price'],
+                           'grapes': wines['Grapes'].str.lower(),
+                           'specialty': wines['Specialty'].str.lower()})
+
+wines.drop('Price', axis=1, inplace=True)
 
 # print out some info
 print("There are {} wines and {} taste features in the dataset".format(wines.shape[0], wines.shape[1]))
 
 # fit the mapper
-mapper = umap.UMAP().fit(wines[wines.columns[3:].to_list()])
+mapper = umap.UMAP().fit(wines[wines.columns[first[0]:].to_list()])
 # manipulate data for the plots, will probably have to do this for both Specialty and Variety
 data = pd.DataFrame(mapper.embedding_, columns=("x", "y"))
 data['label'] = wines['Variety']
@@ -135,7 +144,7 @@ data_source = ColumnDataSource(data)
 buttons_data_source = ColumnDataSource(wines[wines.columns[3:]])
 
 print("Creating struct file...")
-output_file('red_wines_struct_new2.html')
+output_file('red_wines_struct_new.html')
 
 ##### CREATE PLOT
 plot_figure = figure(
@@ -146,18 +155,28 @@ plot_figure = figure(
     background_fill_color='white',
 )
 
-plot_figure.circle(
-    'x',
-    'y',
-    source=data_source,
-    color='color',
-    alpha='alpha',
-    size=6.5,
-)
+for wine_type in unique_labels:
+    plot_source = data[data.loc[:, 'label'] == wine_type]
+    plot_figure.circle(
+        x="x",
+        y="y",
+        source=plot_source,
+        color='color',
+        size=6.5,
+        alpha="alpha",
+        legend_label=wine_type
+    )
 
 plot_figure.grid.visible = False
 plot_figure.axis.visible = False
 plot_figure.toolbar_location = 'above'
+plot_figure.outline_line_width = 7
+plot_figure.outline_line_alpha = 0.3
+plot_figure.outline_line_color = "#dc143c"
+plot_figure.legend.location = "top_left"
+
+# make this dependant on pressing something
+# plot_figure.legend.visible = False
 
 ########### PRICER SLIDER
 price_slider = RangeSlider(start=hover_data['price'].min(), end=hover_data['price'].max(), value=(7,20), step=.1, title="Price")
@@ -250,7 +269,7 @@ text_input.js_on_change("value", textCallback)
 
 ################ TASTE BUTTONS
 wines.to_csv('normalised_wines')
-wines.drop(['Alcohol', 'wine', 'Variety', 'Grapes'],  axis=1, inplace=True)
+wines.drop(['Alcohol', 'wine', 'Variety', 'Grapes', 'Specialty'],  axis=1, inplace=True)
 
 taste_threshold = 1.5
 
@@ -275,7 +294,6 @@ code="""
 
 # have to put a row(plot_figure,buttons) inside this column call
 buttons_plot_figure = column(text_input, row(plot_figure, taste_buttons), price_slider)
-
 
 
 show(buttons_plot_figure)
