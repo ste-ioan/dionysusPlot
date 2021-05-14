@@ -91,7 +91,7 @@ first = [i for i, val in enumerate(wines.columns == 'Bold') if val]
 last = [i for i, val in enumerate(wines.columns == 'Soft') if val]
 
 # let's normalise also the slider data (sweet, dry, etc)
-wines[wines.columns[first[0]:last[0]]] = (wines[wines.columns[first[0]:last[0]]] - wines[wines.columns[first[0]:last[0]]].mean()) / wines[wines.columns[first[0]:last[0]]].std()
+wines[wines.columns[first[0]:last[0]+1]] = (wines[wines.columns[first[0]:last[0]+1]] - wines[wines.columns[first[0]:last[0]+1]].mean()) / wines[wines.columns[first[0]:last[0]+1]].std()
 
 # give avg alcohol content to wines that are missing this data, by specialty (this breaks down very separate clusters!)
 # alternative is to give avg alcohol content, that brings it more together
@@ -112,7 +112,7 @@ wines.reset_index(inplace=True, drop=True)
 
 hover_data = pd.DataFrame({'name': wines['wine'].str.lower(),
                            'price': wines['Price'],
-                           'grapes': wines['Grapes'].str.lower(),
+                           #'grapes': wines['Grapes'].str.lower(),
                            'specialty': wines['Specialty'].str.lower()})
 
 wines.drop('Price', axis=1, inplace=True)
@@ -122,13 +122,15 @@ print("There are {} wines and {} taste features in the dataset".format(wines.sha
 
 # fit the mapper
 mapper = umap.UMAP().fit(wines[wines.columns[first[0]:].to_list()])
-# manipulate data for the plots, will probably have to do this for both Specialty and Variety
+# create data df compatible with widgets
 data = pd.DataFrame(mapper.embedding_, columns=("x", "y"))
+# assign Variety as label and create a color code for each Variety
 data['label'] = wines['Variety']
 unique_labels = np.unique(data['label'])
 num_labels = unique_labels.shape[0]
 color_key = _to_hex(plt.get_cmap('Spectral')(np.linspace(0, 1, num_labels)))
 new_color_key = {k: color_key[i] for i, k in enumerate(unique_labels)}
+# include color as a column in the data df, along with some other info that will be used for the plot&widgets
 data["color"] = pd.Series(wines['Variety']).map(new_color_key)
 data["alpha"] = 1
 data["wine_name"] = wines["wine"].str.lower()
@@ -155,17 +157,14 @@ plot_figure = figure(
     background_fill_color='white',
 )
 
-for wine_type in unique_labels:
-    plot_source = data[data.loc[:, 'label'] == wine_type]
-    plot_figure.circle(
-        x="x",
-        y="y",
-        source=plot_source,
-        color='color',
-        size=6.5,
-        alpha="alpha",
-        legend_label=wine_type
-    )
+plot_figure.circle(
+    x="x",
+    y="y",
+    source=data_source,
+    color='color',
+    size=6.5,
+    alpha="alpha"
+        )
 
 plot_figure.grid.visible = False
 plot_figure.axis.visible = False
@@ -173,7 +172,8 @@ plot_figure.toolbar_location = 'above'
 plot_figure.outline_line_width = 7
 plot_figure.outline_line_alpha = 0.3
 plot_figure.outline_line_color = "#dc143c"
-plot_figure.legend.location = "top_left"
+
+#plot_figure.legend.location = "top_left"
 
 # make this dependant on pressing something
 # plot_figure.legend.visible = False
@@ -200,7 +200,7 @@ price_slider_callback = CustomJS(
     for (var i = 0; i < price_data.x.length; i++) {
         price_range_match = false
         for (var j in search_columns_dict) {
-            if (price_data[search_columns_dict[j]][i] > price_range[0]
+            if (price_data[search_columns_dict[j]][i] >= price_range[0]
             && price_data[search_columns_dict[j]][i] < price_range[1]) {
                 if (source.data["name"][i].includes(text_search)) {
                     price_range_match = true;
@@ -248,7 +248,7 @@ for (var i = 0; i < data.x.length; i++) {
     string_match = false
     for (var j in search_columns_dict) {
         if (String(data[search_columns_dict[j]][i]).includes(text_search) ) {
-            if (price_data[i] > price_range[0]
+            if (price_data[i] >= price_range[0]
             && price_data[i] < price_range[1]) {
                 string_match = true
 
@@ -268,7 +268,7 @@ source.change.emit();
 text_input.js_on_change("value", textCallback)
 
 ################ TASTE BUTTONS
-wines.to_csv('normalised_wines')
+wines.to_csv('normalised_wines.csv')
 wines.drop(['Alcohol', 'wine', 'Variety', 'Grapes', 'Specialty'],  axis=1, inplace=True)
 
 taste_threshold = 1.5
@@ -293,7 +293,7 @@ code="""
 ))
 
 # have to put a row(plot_figure,buttons) inside this column call
-buttons_plot_figure = column(text_input, row(plot_figure, taste_buttons), price_slider)
+plot_figure_widgets = column(text_input, row(plot_figure, taste_buttons), price_slider)
 
 
-show(buttons_plot_figure)
+show(plot_figure_widgets)
