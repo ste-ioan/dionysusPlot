@@ -49,8 +49,8 @@ wines['Dried flowers'] =  (wines.loc[:,'Dried flowers'].fillna(0) + wines.loc[:,
 wines.drop(['Star anise', 'Mango', 'Pineapple', 'Passion fruit', 'Orange peel', 'Guava', 'Green mango',
             'Green papaya', 'Orange rind', 'Blood orange', 'Campfire', 'Black fruit', 'Dried rose', 'Potpourri'], axis=1, inplace=True)
 
-# find the rare taste features (in less than 10 percent of the sample), drop them from the df
-rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.90)].index.to_list()
+# find the rare taste features (in less than 20 percent of the sample), drop them from the df
+rare_features = wines.isnull().sum(axis=0)[wines.isnull().sum(axis=0) > (wines.shape[0] * 0.80)].index.to_list()
 
 # remove wrong features
 undesirables = ['region', 'cheese', 'game', 'meat']
@@ -120,10 +120,19 @@ wines.drop('Price', axis=1, inplace=True)
 # print out some info
 print("There are {} wines and {} taste features in the dataset".format(wines.shape[0], wines.shape[1]))
 
+# mapper parameters
+fit = umap.UMAP(
+    n_neighbors=7,
+    min_dist=0.1,
+    n_components=2,
+    metric='euclidean'
+)
+
 # fit the mapper
-mapper = umap.UMAP().fit(wines[wines.columns[first[0]:].to_list()])
-# create data df compatible with widgets
-data = pd.DataFrame(mapper.embedding_, columns=("x", "y"))
+taste_data = wines[wines.columns[first[0]:].to_list()]
+embedding = fit.fit_transform(taste_data)
+# create data df for plot, compatible with widgets
+data = pd.DataFrame(embedding, columns=("x", "y"))
 # assign Variety as label and create a color code for each Variety
 data['label'] = wines['Variety']
 unique_labels = np.unique(data['label'])
@@ -166,12 +175,18 @@ plot_figure.circle(
     alpha="alpha"
         )
 
+# invisible grid and axes
 plot_figure.grid.visible = False
 plot_figure.axis.visible = False
+# tool bar location
 plot_figure.toolbar_location = 'above'
+# colored outline
 plot_figure.outline_line_width = 7
 plot_figure.outline_line_alpha = 0.3
 plot_figure.outline_line_color = "#dc143c"
+
+# don't remove dots when moving around to control lag (should be ok <10k glyphs)
+plot_figure.lod_threshold = None
 
 #plot_figure.legend.location = "top_left"
 
@@ -269,8 +284,9 @@ text_input.js_on_change("value", textCallback)
 
 ################ TASTE BUTTONS
 wines.to_csv('normalised_wines.csv')
-wines.drop(['Alcohol', 'wine', 'Variety', 'Grapes', 'Specialty'],  axis=1, inplace=True)
+wines.groupby('Specialty').mean().to_csv('specialtiesStats.csv')
 
+wines.drop(['Alcohol', 'wine', 'Variety', 'Grapes', 'Specialty'],  axis=1, inplace=True)
 taste_threshold = 1.5
 
 LABELS = wines.columns[(wines > taste_threshold).apply(any, 0)].to_list()
