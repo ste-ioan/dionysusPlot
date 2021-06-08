@@ -11,6 +11,7 @@ from bokeh.palettes import Spectral10
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+from itertools import product
 
 
 def _to_hex(arr):
@@ -18,7 +19,7 @@ def _to_hex(arr):
 
 
 sns.set(style='white', context='notebook', rc={'figure.figsize': (14, 10)})
-data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\merged\\'
+data_folder = 'C:\\Users\\sadek\\PycharmProjects\\wineScraper\\data\\merged\\Reds\\'
 
 try:
     listdir(data_folder)
@@ -167,7 +168,6 @@ for col_name in hover_data:
     tooltip_dict[col_name] = "@{" + col_name + "}"
 tooltips = list(tooltip_dict.items())
 
-data_source = ColumnDataSource(data)
 buttons_data_source = ColumnDataSource(wines[wines.columns[3:]])
 reference_data_by_fam = ColumnDataSource(wines.groupby('Specialty').mean())
 
@@ -177,19 +177,22 @@ output_file('button_attempt.html')
 ##### CREATE PLOT
 plot_figure = figure(
     title='Dionysus tastespace of {} red wines - alpha'.format(wines.shape[0]),
-    plot_width=600,
-    plot_height=600,
+    plot_width=700,
+    plot_height=700,
     tooltips=tooltips,
     background_fill_color='white',
 )
 
-plot_figure.circle(
-    x="x",
-    y="y",
-    source=data_source,
-    color='color',
-    size=6.5,
-    alpha="alpha"
+for variety in unique_labels:
+    data_source = ColumnDataSource(data.loc[data['label'] == variety, ])
+
+    plot_figure.circle(
+        x="x",
+        y="y",
+        source=data_source,
+        color='color',
+        size=6.5,
+        alpha="alpha",
 )
 
 # invisible grid and axes
@@ -250,6 +253,28 @@ console.log(matches)
 """)
 )
 
+legendList = []
+for k in range(len(unique_labels)):
+    legendList.append((unique_labels[k],[plot_figure.renderers[k]]))
+
+legend1 = Legend(items=list(map(legendList.__getitem__, range(0,6))),
+                location=(5,-10),
+                label_width=-5,
+                title='Wine families',
+                orientation='horizontal',
+                label_standoff=1,
+                spacing=5)
+
+legend2 = Legend(items=list(map(legendList.__getitem__, range(6, 11))),
+                location=(5,10),
+                label_width=-5,
+                orientation='horizontal',
+                label_standoff=1,
+                spacing=5)
+
+plot_figure.add_layout(legend1, 'below')
+plot_figure.add_layout(legend2, 'below')
+
 plot_figure_widgets = row(plot_figure, taste_buttons)
-#T = [buttons_data_source.column_names[i] for i in this.active]
+
 show(plot_figure_widgets)
