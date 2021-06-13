@@ -95,6 +95,8 @@ res = [i for i, val in enumerate(wines.columns == 'Rating') if val]
 filtro = 30
 wines.drop(wines[wines[wines.columns[res[0] + 1:].to_list()].fillna(0).max(axis=1) < filtro].index, inplace=True)
 
+print("Votes from {} people were employed to estimate the taste features".format(wines.loc[:,wines.columns[res[0]+1:]].max(axis=1).sum()))
+
 # stash the taste features, normalise and reinput them into the matrix, fill na's with 0s
 taste_features_columns = wines.columns[res[0] + 1:].to_list()
 normalised_tastes = wines[taste_features_columns].subtract(wines[taste_features_columns].mean(axis=1), axis=0).divide(
