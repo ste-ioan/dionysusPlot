@@ -25,7 +25,7 @@ try:
     listdir(data_folder)
 
 except:
-    print("Could not find files directory...")
+    print("Could not find files directory...Trying with sys.args")
     data_folder = sys.argv[1]
 
 files = [f for f in listdir(data_folder) if f.endswith('.csv')]
@@ -231,23 +231,44 @@ var chosenColumns = new Array()
 let matches = []
 
 activeButtons.forEach(element => chosenColumns.push(columns[element]))
-let counter = 0
+
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
+function getOccurrence(array, value) {
+    return array.filter((v) => (v === value)).length;
+}
+
 
 chosenColumns.forEach(element => {
-counter += 1
 
-console.log('printing element in' + element)
-  for (var i = 0; i<reference.data[element].length; i+=1){
-  if(parseFloat(reference.data[element][i],10) > 1){
-    matches.forEach(match => {
-    matches.push(reference.data[element].indexOf(reference.data[element][i]))
-    })
-    
-  }
-  }
+//console.log("printing element in" + element);
+for (var i = 0; i < reference.data[element].length; i += 1) {
+    if (parseFloat(reference.data[element][i], 10) > 1) {
+        matches.push(i);
+    }
+}
+
 })
 
-console.log(matches)
+let numsInBothColumns = matches.filter(onlyUnique);
+
+let specialtyIndex = numsInBothColumns.forEach(
+    (index) => {
+        if(getOccurrence(matches, index) === chosenColumns.length) {
+            return index;
+        }
+    }
+)
+
+console.log(specialtyIndex);
+
+
+//console.log("Found these many matches -> ", matches);
+
+
+
     
     
 """)
