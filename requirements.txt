@@ -16,7 +16,7 @@ fsspec==0.8.7
 HeapDict==1.0.1
 holoviews==1.14.2
 idna==2.10
-ipython==7.22.0
+ipython==8.10.0
 ipython-genutils==0.2.0
 jedi==0.18.0
 Jinja2==2.11.3
