@@ -11,7 +11,7 @@ dask==2021.3.1
 datashader==0.12.1
 datashape==0.5.2
 decorator==4.4.2
-distributed==2021.3.1
+distributed==2021.10.0
 fsspec==0.8.7
 HeapDict==1.0.1
 holoviews==1.14.2
